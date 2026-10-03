@@ -9,9 +9,12 @@ on:
     paths: [ 'ios/**', 'shared/**', '.github/workflows/ios.yml' ]
 jobs:
   ipa:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      # xcodegen genera proyectos con el formato de Xcode 16: el Xcode 16 más nuevo de la máquina.
+      - name: Xcode 16
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)" && xcodebuild -version
       - name: Compilar (sin firmar)
         run: bash ios/build-ipa.sh
       - uses: actions/upload-artifact@v4
