@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">JD Controller</string>
+    <string name="no_camera">Sin permiso de la cámara: actívalo en Ajustes › Aplicaciones › JD Controller › Permisos</string>
+    <string name="bad_cert">El certificado de este PC no es el de la última vez. Vuelve a buscarlo en «Cambiar de PC».</string>
+</resources>

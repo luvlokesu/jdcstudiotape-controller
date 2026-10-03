@@ -1,0 +1,27 @@
+# App nativa del mando de JDCStudioTape para iPhone / iPad. En un Mac con Xcode 15+:
+#   brew install xcodegen && xcodegen && open JDController.xcodeproj
+# (firma: elige tu equipo en Signing & Capabilities; con una cuenta gratuita la app dura 7 días en el móvil).
+name: JDController
+options:
+  bundleIdPrefix: com.jdcstudiotape
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  JDController:
+    type: application
+    platform: iOS
+    sources:
+      - path: JDController
+      - path: ../shared
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jdcstudiotape.controller
+        PRODUCT_NAME: JDController
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: 1
+        INFOPLIST_FILE: JDController/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: NO

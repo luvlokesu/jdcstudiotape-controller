@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.jdcstudiotape.controller'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.jdcstudiotape.controller'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // La pantalla de inicio (start.html) y el icono se comparten con la app de iPhone.
+    sourceSets {
+        main { assets.srcDirs = ['src/main/assets', '../../shared'] }
+    }
+
+    // Para instalar a mano (APK servida por el PC): firmada con la clave de depuración salvo que se configure otra
+    // (JDC_KEYSTORE / JDC_KEYSTORE_PASS / JDC_KEY_ALIAS / JDC_KEY_PASS en el entorno).
+    signingConfigs {
+        if (System.getenv('JDC_KEYSTORE')) {
+            jdc {
+                storeFile file(System.getenv('JDC_KEYSTORE'))
+                storePassword System.getenv('JDC_KEYSTORE_PASS')
+                keyAlias System.getenv('JDC_KEY_ALIAS')
+                keyPassword System.getenv('JDC_KEY_PASS')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig System.getenv('JDC_KEYSTORE') ? signingConfigs.jdc : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>JD Controller</title>
+<!-- Pantalla de inicio de la app nativa del mando (Android / iPhone): busca el PC con JDCStudioTape en la Wi-Fi
+     (UDP, Capture/PhoneServer.cs › StartDiscovery), recuerda el último y abre su app del mando (https://PC/phone).
+     Puente: Android → window.JDCNative.<orden>(texto); iPhone → webkit.messageHandlers.jdc.postMessage({t, v}).
+     Respuestas del nativo: window.jdcNative.onPcs(lista) · onError(texto) · onScan(texto). -->
+<style>
+  :root { --pink: #ff2e8a; --cyan: #2fe6ff; --bg1: #6a2ae0; --bg2: #2a0f6e; --bg3: #0f0430; --glass: rgba(255,255,255,.10); --glass2: rgba(255,255,255,.18);
+    --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px); }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg3); color: #fff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-user-select: none; user-select: none; }
+  body { overflow-y: auto; background: radial-gradient(130% 75% at 50% -5%, var(--bg1) 0%, var(--bg2) 48%, var(--bg3) 100%) fixed; }
+  main { min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: calc(var(--safe-t) + 28px) 18px calc(var(--safe-b) + 24px); }
+  .logo { width: 92px; height: 92px; border-radius: 24px; box-shadow: 0 8px 30px rgba(255,46,138,.35); }
+  h1 { margin: 0; font-size: 26px; letter-spacing: .02em; text-transform: uppercase; font-weight: 800; }
+  h2 { margin: 10px 0 0; font-size: 15px; text-transform: uppercase; letter-spacing: .06em; opacity: .85; width: min(100%, 420px); }
+  p { margin: 0; text-align: center; opacity: .85; font-size: 14px; line-height: 1.4; max-width: 420px; }
+  button { font: inherit; color: #fff; border: 0; cursor: pointer; }
+  .list { display: flex; flex-direction: column; gap: 8px; width: min(100%, 420px); }
+  .pc { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; background: var(--glass); text-align: left; width: 100%; }
+  .pc:active { background: var(--glass2); }
+  .pc .ic { width: 42px; height: 42px; border-radius: 12px; flex: none; }
+  .pc b { display: block; font-size: 17px; }
+  .pc small { display: block; opacity: .75; font-size: 12px; margin-top: 2px; }
+  .pc .go { margin-left: auto; padding: 8px 14px; border-radius: 20px; background: var(--pink); font-weight: 700; font-size: 13px; text-transform: uppercase; }
+  .pc.last { box-shadow: inset 0 0 0 2px var(--cyan); }
+  .empty { padding: 16px; border-radius: 18px; background: rgba(0,0,0,.2); text-align: center; font-size: 14px; opacity: .85; }
+  .row { display: flex; gap: 8px; width: min(100%, 420px); }
+  input { flex: 1; min-width: 0; font: 16px system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.3); border: 1.5px solid rgba(255,255,255,.25); border-radius: 14px; padding: 12px 14px; outline: none; -webkit-user-select: text; user-select: text; }
+  input:focus { border-color: var(--cyan); }
+  .pill { padding: 12px 18px; border-radius: 14px; background: var(--pink); font-weight: 700; font-size: 14px; text-transform: uppercase; flex: none; }
+  .ghost { background: var(--glass); }
+  .wide { width: min(100%, 420px); }
+  .spin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid rgba(255,255,255,.25); border-top-color: #fff; animation: r .8s linear infinite; display: inline-block; vertical-align: -3px; margin-right: 8px; }
+  @keyframes r { to { transform: rotate(360deg); } }
+  .err { color: #ffb3c6; min-height: 1.2em; }
+  .hidden { display: none !important; }
+  .help { font-size: 12px; opacity: .7; }
+</style>
+</head>
+<body>
+<main>
+  <img class="logo" src="icon.png" alt="">
+  <h1>JD Controller</h1>
+  <p>Mando, cámara y voto para jugar en <b>JDCStudioTape</b>. El móvil y el PC tienen que estar en la misma Wi-Fi.</p>
+
+  <h2>PC en tu Wi-Fi</h2>
+  <div id="list" class="list"><div class="empty"><span class="spin"></span>Buscando…</div></div>
+  <button id="again" class="pill ghost wide">Buscar otra vez</button>
+  <p id="err" class="err"></p>
+
+  <h2>Otras formas de entrar</h2>
+  <button id="scan" class="pill wide hidden">Escanear el QR del PC</button>
+  <div class="row"><input id="ip" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="IP del PC (p. ej. 192.168.1.23)"><button id="ipGo" class="pill">Entrar</button></div>
+  <div class="row"><input id="link" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Enlace de invitación (online)"><button id="linkGo" class="pill">Abrir</button></div>
+  <p class="help">En el PC: «Jugar mapa» › «Jugadores y mandos» › «Móvil» muestra la IP, el QR y el enlace para jugar online.</p>
+  <p id="ver" class="help"></p>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const IOS = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.jdc);
+function call(t, v) {
+  if (window.JDCNative && typeof window.JDCNative[t] === 'function') return window.JDCNative[t](v == null ? '' : String(v));
+  if (IOS) window.webkit.messageHandlers.jdc.postMessage({ t, v: v == null ? '' : String(v) });
+}
+let last = null; try { last = JSON.parse(localStorage.getItem('jdc.last') || 'null'); } catch { }
+let auto = !/[?&]noauto=1\b/.test(location.search); // al volver con «Cambiar de PC», sin entrar solo
+let searching = false;
+
+window.jdcNative = {
+  onPcs(list) {
+    searching = false;
+    const box = $('list'); box.innerHTML = '';
+    list = Array.isArray(list) ? list : [];
+    if (!list.length) {
+      const d = document.createElement('div'); d.className = 'empty';
+      d.textContent = 'No encuentro ningún PC. Abre «Jugar mapa» en JDCStudioTape, o escribe su IP abajo.';
+      box.appendChild(d);
+    }
+    for (const pc of list) {
+      const isLast = last && last.caSha256 && last.caSha256 === pc.caSha256;
+      const b = document.createElement('button'); b.className = 'pc' + (isLast ? ' last' : '');
+      const ic = document.createElement('img'); ic.className = 'ic'; ic.src = 'icon.png'; ic.alt = '';
+      const tx = document.createElement('span');
+      const n = document.createElement('b'); n.textContent = pc.pc || pc.ip;
+      const s = document.createElement('small'); s.textContent = pc.ip + (pc.players ? ' · ' + pc.players + (pc.players === 1 ? ' móvil' : ' móviles') : '') + (isLast ? ' · el último' : '');
+      tx.append(n, s);
+      const go = document.createElement('span'); go.className = 'go'; go.textContent = 'Entrar';
+      b.append(ic, tx, go);
+      b.onclick = () => open(pc);
+      box.appendChild(b);
+    }
+    // El mismo PC de la última vez (misma CA): se entra solo.
+    if (auto && last) { const same = list.find(p => p.caSha256 && p.caSha256 === last.caSha256); if (same) { auto = false; open(same); } }
+    auto = false;
+  },
+  onError(text) { searching = false; $('err').textContent = text || ''; },
+  onScan(text) {
+    // QR del PC: «http://192.168.1.23/» (o con puerto) → se pregunta a esa IP; un enlace https completo se abre tal cual.
+    const m = /^https?:\/\/([0-9.]+|\[[0-9a-f:]+\]|[a-z0-9.-]+)(?::(\d+))?/i.exec(text || '');
+    if (!m) { $('err').textContent = 'Ese QR no es el de JDCStudioTape'; return; }
+    if (/^https:/i.test(text) && !/^[0-9.]+$/.test(m[1])) { call('openUrl', text); return; }
+    $('ip').value = m[1]; probeIp();
+  },
+};
+function open(pc) {
+  $('err').textContent = '';
+  try { localStorage.setItem('jdc.last', JSON.stringify(pc)); } catch { }
+  call('open', JSON.stringify(pc));
+}
+function search() {
+  if (searching) return;
+  searching = true; $('err').textContent = '';
+  $('list').innerHTML = '<div class="empty"><span class="spin"></span>Buscando…</div>';
+  call('discover', '');
+}
+function probeIp() {
+  const ip = ($('ip').value || '').trim();
+  if (!/^[0-9.]{7,15}(:\d+)?$/.test(ip)) { $('err').textContent = 'Escribe la IP que sale en el PC, p. ej. 192.168.1.23'; return; }
+  try { localStorage.setItem('jdc.ip', ip); } catch { }
+  searching = true; $('err').textContent = '';
+  $('list').innerHTML = '<div class="empty"><span class="spin"></span>Preguntando a ' + ip + '…</div>';
+  call('discover', ip.replace(/:\d+$/, ''));
+}
+$('again').onclick = search;
+$('ipGo').onclick = probeIp;
+$('ip').onkeydown = e => { if (e.key === 'Enter') probeIp(); };
+$('ip').value = localStorage.getItem('jdc.ip') || '';
+$('linkGo').onclick = () => {
+  const u = ($('link').value || '').trim();
+  if (!/^https:\/\/[^/\s]+\//i.test(u)) { $('err').textContent = 'Pega el enlace completo (empieza por https://)'; return; }
+  call('openUrl', u);
+};
+if (IOS) { $('scan').classList.remove('hidden'); $('scan').onclick = () => call('scan', ''); }
+$('ver').textContent = (navigator.userAgent.match(/JDCControllerApp\/[\d.]+/) || [''])[0].replace('JDCControllerApp/', 'Versión ');
+search();
+</script>
+</body>
+</html>

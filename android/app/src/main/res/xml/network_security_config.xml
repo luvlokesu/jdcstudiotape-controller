@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HTTP sólo para la página de entrada y el certificado de la CA del PC (red local). HTTPS: las CA del sistema y las que
+     instale el usuario (la CA de JDCStudioTape); además MainActivity fija la CA de cada PC encontrado. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

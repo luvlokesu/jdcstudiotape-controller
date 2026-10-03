@@ -1,0 +1,21 @@
+# App del mando de JDCStudioTape para iPhone / iPad, compilada en un Mac de GitHub (Windows no puede compilar apps de iOS).
+# Uso: sube el contenido de tools/controller-app a un repositorio de GitHub (este archivo queda en .github/workflows/),
+# abre Actions › «iOS (JD Controller)» › Run workflow y descarga el artefacto JDController-unsigned-ipa.
+# La .ipa va sin firmar: fírmala al instalarla con tu Apple ID (Sideloadly / AltStore) o con tu cuenta de desarrollador.
+name: iOS (JD Controller)
+on:
+  workflow_dispatch:
+  push:
+    paths: [ 'ios/**', 'shared/**', '.github/workflows/ios.yml' ]
+jobs:
+  ipa:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compilar (sin firmar)
+        run: bash ios/build-ipa.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JDController-unsigned-ipa
+          path: ios/JDController-unsigned.ipa
+          if-no-files-found: error

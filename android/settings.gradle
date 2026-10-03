@@ -1,0 +1,10 @@
+// App nativa del mando de JDCStudioTape para Android (WebView con la app del PC + búsqueda en la Wi-Fi).
+pluginManagement {
+    repositories { google(); mavenCentral(); gradlePluginPortal() }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories { google(); mavenCentral() }
+}
+rootProject.name = 'JDController'
+include ':app'
